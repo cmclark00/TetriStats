@@ -118,13 +118,15 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
-                    android:contentDescription="Score media" />
+                    android:contentDescription="Score media"
+                    android:foreground="?attr/selectableItemBackground" />
 
                 <!-- Video thumbnail with play indicator -->
                 <FrameLayout
                     android:id="@+id/videoContainer"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
+                    android:foreground="?attr/selectableItemBackground"
                     android:visibility="gone">
 
                     <VideoView
@@ -148,16 +150,49 @@
                         android:alpha="0.7"
                         android:contentDescription="Play video" />
                 </FrameLayout>
+
+                <!-- Long press hint -->
+                <TextView
+                    android:id="@+id/textHintLongPress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:text="Long press to remove"
+                    android:textSize="10sp"
+                    android:textStyle="italic"
+                    android:background="#80000000"
+                    android:textColor="#FFFFFF"
+                    android:padding="4dp"
+                    android:layout_margin="4dp" />
             </androidx.cardview.widget.CardView>
 
-            <!-- Add media button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/buttonAddMedia"
+            <!-- Media buttons layout -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Add Photo/Video"
-                app:icon="@android:drawable/ic_menu_camera"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                android:orientation="horizontal">
+
+                <!-- Add media button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonAddMedia"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Add Photo/Video"
+                    app:icon="@android:drawable/ic_menu_camera"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+
+                <!-- Remove media button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonRemoveMedia"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="Remove Media"
+                    android:visibility="gone"
+                    app:icon="@android:drawable/ic_menu_close_clear_cancel"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+            </LinearLayout>
         </FrameLayout>
 
     </LinearLayout>

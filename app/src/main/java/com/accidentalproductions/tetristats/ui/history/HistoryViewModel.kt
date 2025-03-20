@@ -43,6 +43,17 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
     private val _mediaSaveResult = MutableLiveData<MediaSaveResult?>()
     val mediaSaveResult: LiveData<MediaSaveResult?> = _mediaSaveResult
     
+    // For delete and undo functionality
+    private val _deleteResult = MutableLiveData<DeleteResult?>()
+    val deleteResult: LiveData<DeleteResult?> = _deleteResult
+    
+    // Keep track of recently deleted score for undo
+    private var lastDeletedScore: Score? = null
+    
+    // For media removal
+    private val _mediaRemoveResult = MutableLiveData<MediaRemoveResult?>()
+    val mediaRemoveResult: LiveData<MediaRemoveResult?> = _mediaRemoveResult
+    
     fun exportScoresToCsv() {
         viewModelScope.launch {
             try {
@@ -195,6 +206,97 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             )
         }
     }
+    
+    fun deleteScore(scoreId: Long) {
+        viewModelScope.launch {
+            try {
+                val score = getScoreById(scoreId)
+                if (score != null) {
+                    // Store for potential undo
+                    lastDeletedScore = score
+                    
+                    // Delete from database
+                    scoreDao.delete(score)
+                    
+                    _deleteResult.postValue(DeleteResult.Success("Score deleted. Tap UNDO to restore."))
+                } else {
+                    _deleteResult.postValue(DeleteResult.Error("Score not found"))
+                }
+            } catch (e: Exception) {
+                _deleteResult.postValue(DeleteResult.Error("Delete failed: ${e.message}"))
+            }
+        }
+    }
+    
+    fun undoDelete() {
+        viewModelScope.launch {
+            try {
+                lastDeletedScore?.let { score ->
+                    // Reinsert the score
+                    scoreDao.insert(score)
+                    
+                    _deleteResult.postValue(DeleteResult.UndoSuccess("Score restored"))
+                    
+                    // Clear the stored score
+                    lastDeletedScore = null
+                } ?: run {
+                    _deleteResult.postValue(DeleteResult.Error("No score to restore"))
+                }
+            } catch (e: Exception) {
+                _deleteResult.postValue(DeleteResult.Error("Restore failed: ${e.message}"))
+            }
+        }
+    }
+    
+    fun removeMedia(scoreId: Long) {
+        viewModelScope.launch {
+            try {
+                val score = getScoreById(scoreId)
+                if (score != null && score.mediaUri != null) {
+                    // Store media URI for potential cleanup
+                    val mediaUri = score.mediaUri
+                    
+                    // Update score with null media
+                    val updatedScore = score.copy(mediaUri = null)
+                    updateScore(updatedScore)
+                    
+                    // Try to delete the physical file if it's in our app storage
+                    if (mediaUri.startsWith("content://") && 
+                        mediaUri.contains(getApplication<Application>().packageName)) {
+                        try {
+                            val uriObj = Uri.parse(mediaUri)
+                            val context = getApplication<Application>()
+                            val contentResolver = context.contentResolver
+                            contentResolver.delete(uriObj, null, null)
+                        } catch (e: Exception) {
+                            // Just log, don't fail the whole operation
+                            e.printStackTrace()
+                        }
+                    }
+                    
+                    _mediaRemoveResult.postValue(MediaRemoveResult.Success)
+                } else {
+                    _mediaRemoveResult.postValue(MediaRemoveResult.Error("Score not found or no media attached"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _mediaRemoveResult.postValue(MediaRemoveResult.Error(e.message ?: "Unknown error"))
+            }
+        }
+    }
+    
+    // Methods to clear LiveData after consumption
+    fun clearDeleteResult() {
+        _deleteResult.value = null
+    }
+    
+    fun clearMediaSaveResult() {
+        _mediaSaveResult.value = null
+    }
+    
+    fun clearMediaRemoveResult() {
+        _mediaRemoveResult.value = null
+    }
 }
 
 sealed class ExportResult {
@@ -205,6 +307,17 @@ sealed class ExportResult {
 sealed class MediaSaveResult {
     object Success : MediaSaveResult()
     data class Error(val message: String) : MediaSaveResult()
+}
+
+sealed class DeleteResult {
+    data class Success(val message: String) : DeleteResult()
+    data class UndoSuccess(val message: String) : DeleteResult()
+    data class Error(val message: String) : DeleteResult()
+}
+
+sealed class MediaRemoveResult {
+    object Success : MediaRemoveResult()
+    data class Error(val message: String) : MediaRemoveResult()
 }
 
 class HistoryViewModelFactory(private val application: Application) : ViewModelProvider.Factory {

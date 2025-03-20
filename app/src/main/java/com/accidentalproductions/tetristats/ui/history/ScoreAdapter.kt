@@ -17,6 +17,7 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class ScoreAdapter(private val mediaListener: MediaAttachmentListener? = null) : 
     ListAdapter<Score, ScoreAdapter.ScoreViewHolder>(ScoreDiffCallback()) {
@@ -24,6 +25,7 @@ class ScoreAdapter(private val mediaListener: MediaAttachmentListener? = null) :
     interface MediaAttachmentListener {
         fun onAddMediaClicked(scoreId: Long)
         fun onMediaClicked(mediaUri: Uri, isVideo: Boolean)
+        fun onRemoveMediaClicked(scoreId: Long)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ScoreViewHolder {
@@ -79,7 +81,7 @@ class ScoreAdapter(private val mediaListener: MediaAttachmentListener? = null) :
                 binding.layoutLinesCleared.visibility = View.GONE
             }
             
-            // Handle media display
+            // Handle media display and options
             setupMedia(score)
         }
         
@@ -88,6 +90,7 @@ class ScoreAdapter(private val mediaListener: MediaAttachmentListener? = null) :
                 // We have media to display
                 binding.cardViewMedia.visibility = View.VISIBLE
                 binding.buttonAddMedia.visibility = View.GONE
+                binding.buttonRemoveMedia.visibility = View.GONE
                 
                 val uri = score.mediaUri.toUri()
                 val isVideo = score.mediaUri.endsWith(".mp4", ignoreCase = true) || 
@@ -111,6 +114,12 @@ class ScoreAdapter(private val mediaListener: MediaAttachmentListener? = null) :
                             mediaListener?.onMediaClicked(uri, true)
                         }
                         
+                        // Add long press listener for media deletion
+                        binding.videoContainer.setOnLongClickListener {
+                            showDeleteMediaDialog(score.id)
+                            true
+                        }
+                        
                         retriever.release()
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -128,6 +137,13 @@ class ScoreAdapter(private val mediaListener: MediaAttachmentListener? = null) :
                         binding.imageViewMedia.setOnClickListener {
                             mediaListener?.onMediaClicked(uri, false)
                         }
+                        
+                        // Add long press listener for media deletion
+                        binding.imageViewMedia.setOnLongClickListener {
+                            showDeleteMediaDialog(score.id)
+                            true
+                        }
+                        
                     } catch (e: Exception) {
                         e.printStackTrace()
                         binding.cardViewMedia.visibility = View.GONE
@@ -138,12 +154,26 @@ class ScoreAdapter(private val mediaListener: MediaAttachmentListener? = null) :
                 // No media, show the add button
                 binding.cardViewMedia.visibility = View.GONE
                 binding.buttonAddMedia.visibility = View.VISIBLE
+                binding.buttonRemoveMedia.visibility = View.GONE
                 
                 // Set click listener to add media
                 binding.buttonAddMedia.setOnClickListener {
                     mediaListener?.onAddMediaClicked(score.id)
                 }
             }
+        }
+        
+        private fun showDeleteMediaDialog(scoreId: Long) {
+            val context = binding.root.context
+            // Create and show deletion popup
+            MaterialAlertDialogBuilder(context)
+                .setTitle("Remove Media")
+                .setMessage("Would you like to remove this media?")
+                .setPositiveButton("Remove") { _, _ ->
+                    mediaListener?.onRemoveMediaClicked(scoreId)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
     }
 }

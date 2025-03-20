@@ -19,7 +19,7 @@
         
         <!-- Splash screen -->
         <item name="android:windowSplashScreenBackground">@color/tetris_pink</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@color/tetris_pink</item>
     </style>
 
