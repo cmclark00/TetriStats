@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Custom theme colors based on the Tetris image -->
+    <color name="primary">#5CD6D6</color>
+    <color name="primary_dark">#48AAAA</color>
+    <color name="accent">#FF9B9B</color>
+    <color name="background">#FFD5D5</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="error">#FFB00020</color>
+    <color name="tetris_pink">#FFD5D5</color>
+    <color name="tetris_turquoise">#5CD6D6</color>
+    <color name="tetris_navy">#2D3B55</color>
+    
+    <!-- Required Android default colors -->
+    <color name="purple_200">#5CD6D6</color>
+    <color name="purple_500">#48AAAA</color>
+    <color name="purple_700">#2D3B55</color>
+    <color name="teal_200">#5CD6D6</color>
+    <color name="teal_700">#48AAAA</color>
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources>

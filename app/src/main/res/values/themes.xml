@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.TetriStats" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/accent</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorError">@color/error</item>
+        
+        <!-- Text colors -->
+        <item name="android:textColorPrimary">@color/tetris_navy</item>
+        <item name="android:textColorSecondary">@color/tetris_navy</item>
+        
+        <!-- Widget colors -->
+        <item name="materialButtonStyle">@style/Widget.TetriStats.Button</item>
+        <item name="textInputStyle">@style/Widget.TetriStats.TextInputLayout</item>
+        
+        <!-- Splash screen -->
+        <item name="android:windowSplashScreenBackground">@color/tetris_pink</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/tetris_pink</item>
+    </style>
+
+    <style name="Widget.TetriStats.Button" parent="Widget.MaterialComponents.Button">
+        <item name="backgroundTint">@color/tetris_turquoise</item>
+        <item name="android:textColor">@color/tetris_navy</item>
+    </style>
+
+    <style name="Widget.TetriStats.TextInputLayout" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/tetris_turquoise</item>
+        <item name="hintTextColor">@color/tetris_navy</item>
+    </style>
+</resources>
