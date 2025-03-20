@@ -1,16 +1,210 @@
 package com.accidentalproductions.tetristats.ui.history
 
 import android.app.Application
+import android.content.ContentResolver
+import android.content.ContentValues
+import android.content.Context
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.webkit.MimeTypeMap
+import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.accidentalproductions.tetristats.data.Score
 import com.accidentalproductions.tetristats.data.ScoreDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 
 class HistoryViewModel(application: Application) : AndroidViewModel(application) {
     private val database = ScoreDatabase.getDatabase(application)
     private val scoreDao = database.scoreDao()
 
     val allScores = scoreDao.getAllScores()
+    
+    private val _exportResult = MutableLiveData<ExportResult>()
+    val exportResult: LiveData<ExportResult> = _exportResult
+    
+    private val _mediaSaveResult = MutableLiveData<MediaSaveResult?>()
+    val mediaSaveResult: LiveData<MediaSaveResult?> = _mediaSaveResult
+    
+    fun exportScoresToCsv() {
+        viewModelScope.launch {
+            try {
+                val scores = allScores.value ?: emptyList()
+                if (scores.isEmpty()) {
+                    _exportResult.postValue(ExportResult.Error("No scores to export"))
+                    return@launch
+                }
+                
+                val csvContent = generateCsvContent(scores)
+                val uri = saveCsvFile(csvContent)
+                _exportResult.postValue(ExportResult.Success(uri))
+            } catch (e: Exception) {
+                _exportResult.postValue(ExportResult.Error("Export failed: ${e.message}"))
+            }
+        }
+    }
+    
+    fun saveMediaForScore(scoreId: Long, mediaUri: Uri) {
+        viewModelScope.launch {
+            try {
+                // Copy the media to our app's internal storage to ensure it's persisted
+                val savedUri = copyMediaToAppStorage(mediaUri)
+                
+                // Update the score with the media URI
+                val score = getScoreById(scoreId)
+                if (score != null) {
+                    val updatedScore = score.copy(mediaUri = savedUri.toString())
+                    updateScore(updatedScore)
+                    _mediaSaveResult.postValue(MediaSaveResult.Success)
+                } else {
+                    _mediaSaveResult.postValue(MediaSaveResult.Error("Score not found"))
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _mediaSaveResult.postValue(MediaSaveResult.Error(e.message ?: "Unknown error"))
+            }
+        }
+    }
+    
+    private suspend fun getScoreById(scoreId: Long): Score? = withContext(Dispatchers.IO) {
+        val scores = allScores.value ?: emptyList()
+        return@withContext scores.find { it.id == scoreId }
+    }
+    
+    private suspend fun updateScore(score: Score) = withContext(Dispatchers.IO) {
+        scoreDao.insert(score) // Using insert with REPLACE strategy
+    }
+    
+    private suspend fun copyMediaToAppStorage(sourceUri: Uri): Uri = withContext(Dispatchers.IO) {
+        val context = getApplication<Application>()
+        val contentResolver = context.contentResolver
+        
+        // Determine file extension
+        val mimeType = contentResolver.getType(sourceUri) ?: "application/octet-stream"
+        val extension = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType) ?: 
+                        if (mimeType.startsWith("image/")) "jpg" else "mp4"
+        
+        // Create a unique filename
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val fileName = "media_${timestamp}_${UUID.randomUUID()}.$extension"
+        
+        // Create file in app's private storage
+        val mediaDir = File(context.getExternalFilesDir(Environment.DIRECTORY_PICTURES), "tetris_media")
+        if (!mediaDir.exists()) {
+            mediaDir.mkdirs()
+        }
+        
+        val destFile = File(mediaDir, fileName)
+        
+        // Copy the content
+        contentResolver.openInputStream(sourceUri)?.use { inputStream ->
+            FileOutputStream(destFile).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        } ?: throw IOException("Failed to open input stream")
+        
+        // Return a URI that can be used by our app
+        return@withContext FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            destFile
+        )
+    }
+    
+    private fun generateCsvContent(scores: List<Score>): String {
+        val dateFormat = SimpleDateFormat("MM/dd/yyyy", Locale.getDefault())
+        val sb = StringBuilder()
+        
+        // Header
+        sb.appendLine("ID,Game,Score,Start Level,End Level,Lines Cleared,Date,Media")
+        
+        // Data
+        scores.forEach { score ->
+            sb.appendLine(
+                "${score.id}," +
+                "\"${score.gameVersion}\"," +
+                "${score.scoreValue}," +
+                "${score.startLevel ?: ""}," +
+                "${score.endLevel ?: ""}," +
+                "${score.linesCleared ?: ""}," +
+                "${score.dateRecorded.let { dateFormat.format(Date(it)) }}," +
+                "${score.mediaUri ?: ""}"
+            )
+        }
+        
+        return sb.toString()
+    }
+    
+    private suspend fun saveCsvFile(content: String): Uri = withContext(Dispatchers.IO) {
+        val context = getApplication<Application>()
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val fileName = "tetris_scores_$timestamp.csv"
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "text/csv")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOCUMENTS)
+            }
+            
+            val uri = context.contentResolver.insert(
+                MediaStore.Files.getContentUri("external"),
+                contentValues
+            ) ?: throw IOException("Failed to create new MediaStore record")
+            
+            context.contentResolver.openOutputStream(uri)?.use { stream ->
+                stream.write(content.toByteArray())
+            } ?: throw IOException("Failed to open output stream")
+            
+            return@withContext uri
+        } else {
+            // For older Android versions
+            val documentsDir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+                ?: throw IOException("Failed to access Documents directory")
+            
+            if (!documentsDir.exists()) {
+                documentsDir.mkdirs()
+            }
+            
+            val file = File(documentsDir, fileName)
+            FileOutputStream(file).use { stream ->
+                stream.write(content.toByteArray())
+            }
+            
+            return@withContext FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+        }
+    }
+}
+
+sealed class ExportResult {
+    data class Success(val uri: Uri) : ExportResult()
+    data class Error(val message: String) : ExportResult()
+}
+
+sealed class MediaSaveResult {
+    object Success : MediaSaveResult()
+    data class Error(val message: String) : MediaSaveResult()
 }
 
 class HistoryViewModelFactory(private val application: Application) : ViewModelProvider.Factory {

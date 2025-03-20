@@ -15,33 +15,150 @@
         android:padding="16dp">
 
         <TextView
+            android:id="@+id/textViewGameVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:textColor="@color/tetris_turquoise"
+            android:textStyle="bold" 
+            tools:text="Tetris (NES)"/>
+
+        <TextView
             android:id="@+id/textViewScore"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textAppearance="?attr/textAppearanceHeadline5"
             android:textColor="@color/tetris_navy"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:text="999,999" />
 
-        <TextView
-            android:id="@+id/textViewDate"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
 
-        <TextView
-            android:id="@+id/textViewLevelInfo"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Date: "
+                android:textStyle="bold"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:id="@+id/textViewDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBody2"
+                tools:text="03/20/2025" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
 
-        <TextView
-            android:id="@+id/textViewLinesCleared"
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Levels: "
+                android:textStyle="bold"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:id="@+id/textViewLevelInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBody2"
+                tools:text="18 → 29" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutLinesCleared"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBody2" />
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Lines: "
+                android:textStyle="bold"
+                android:textAppearance="?attr/textAppearanceBody2" />
+
+            <TextView
+                android:id="@+id/textViewLinesCleared"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBody2"
+                tools:text="230" />
+        </LinearLayout>
+
+        <!-- Media section -->
+        <FrameLayout
+            android:id="@+id/mediaContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp">
+
+            <!-- Media preview -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardViewMedia"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:visibility="gone"
+                app:cardCornerRadius="4dp"
+                tools:visibility="visible">
+
+                <!-- ImageView for photos -->
+                <ImageView
+                    android:id="@+id/imageViewMedia"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="Score media" />
+
+                <!-- Video thumbnail with play indicator -->
+                <FrameLayout
+                    android:id="@+id/videoContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="gone">
+
+                    <VideoView
+                        android:id="@+id/videoViewMedia"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+
+                    <ImageView
+                        android:id="@+id/imageViewVideoThumbnail"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:contentDescription="Video thumbnail" />
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:src="@android:drawable/ic_media_play"
+                        android:alpha="0.7"
+                        android:contentDescription="Play video" />
+                </FrameLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Add media button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonAddMedia"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Add Photo/Video"
+                app:icon="@android:drawable/ic_menu_camera"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+        </FrameLayout>
 
     </LinearLayout>
 

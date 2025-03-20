@@ -10,10 +10,26 @@ class TetriStatsApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        database = Room.databaseBuilder(
-            applicationContext,
-            ScoreDatabase::class.java,
-            "score_database"
-        ).build()
+        try {
+            // First try with migration
+            database = Room.databaseBuilder(
+                applicationContext,
+                ScoreDatabase::class.java,
+                "score_database"
+            )
+            .addMigrations(ScoreDatabase.MIGRATION_1_2)
+            .build()
+        } catch (e: Exception) {
+            // Fallback: If migration fails, recreate the database
+            // This is not ideal for production as it loses data,
+            // but helps during development or if migration fails
+            database = Room.databaseBuilder(
+                applicationContext,
+                ScoreDatabase::class.java,
+                "score_database"
+            )
+            .fallbackToDestructiveMigration()
+            .build()
+        }
     }
 } 

@@ -12,5 +12,6 @@ data class Score(
     val startLevel: Int? = null,
     val endLevel: Int? = null,
     val linesCleared: Int? = null,
-    val dateRecorded: Long = System.currentTimeMillis()
+    val dateRecorded: Long = System.currentTimeMillis(),
+    val mediaUri: String? = null
 )
