@@ -7,6 +7,11 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Add permissions needed to create releases
+permissions:
+  contents: write
+  packages: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -60,8 +65,6 @@ jobs:
         id: create_release_on_push
         if: ${{ !startsWith(github.ref, 'refs/tags/') && github.event_name == 'push' }}
         uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ env.VERSION_NAME }}-${{ github.run_number }}
           name: Release v${{ env.VERSION_NAME }}-${{ github.run_number }}
