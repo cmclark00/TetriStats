@@ -27,6 +27,16 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            // These values will be replaced during the GitHub Actions build
+            storeFile = file("keystore/release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "android"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "release"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -34,7 +44,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Make release version debuggable for now (helps with troubleshooting)
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
             isDebuggable = true
         }
     }
