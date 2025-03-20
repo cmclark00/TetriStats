@@ -17,6 +17,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Ensure 64-bit architecture support
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+        }
+
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
         }
@@ -29,6 +34,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Make release version debuggable for now (helps with troubleshooting)
+            isDebuggable = true
         }
     }
     compileOptions {
@@ -40,6 +47,16 @@ android {
     }
     buildFeatures {
         viewBinding = true
+    }
+    
+    // Explicitly specify supported ABIs to ensure 64-bit compatibility
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
+        }
     }
 }
 

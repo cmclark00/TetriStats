@@ -39,17 +39,20 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
+      - name: Debug directory structure
+        run: find app/build/outputs -type f -name "*.apk" | sort
+
       - name: Rename APK for tag release
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           mkdir -p renamed_apk
-          cp app/build/outputs/apk/release/app-release-unsigned.apk renamed_apk/TetriStats-${{ env.VERSION_NAME }}.apk
+          cp app/build/outputs/apk/release/app-release-universal.apk renamed_apk/TetriStats-${{ env.VERSION_NAME }}.apk
 
       - name: Rename APK for push release
         if: ${{ !startsWith(github.ref, 'refs/tags/') && github.event_name == 'push' }}
         run: |
           mkdir -p renamed_apk
-          cp app/build/outputs/apk/release/app-release-unsigned.apk renamed_apk/TetriStats-${{ env.VERSION_NAME }}-${{ github.run_number }}.apk
+          cp app/build/outputs/apk/release/app-release-universal.apk renamed_apk/TetriStats-${{ env.VERSION_NAME }}-${{ github.run_number }}.apk
 
       - name: Upload APK as artifact for tag release
         if: startsWith(github.ref, 'refs/tags/')
