@@ -1,0 +1,111 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# Add permissions needed to create releases
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Get version name from build.gradle
+        id: version
+        run: |
+          VERSION_NAME=$(grep -o 'versionName = "[^"]*' app/build.gradle.kts | cut -d'"' -f2)
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          echo "APP_VERSION=$VERSION_NAME" >> $GITHUB_OUTPUT
+
+      # Setup keystore directory
+      - name: Setup keystore directory
+        run: mkdir -p app/keystore
+
+      # Generate a keystore for signing
+      - name: Generate keystore
+        run: |
+          keytool -genkey -v -keystore app/keystore/release.keystore -storepass android -alias release -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=TetriStats,O=Accidental Productions,L=Unknown,C=US"
+
+      # Set environment variables for signing
+      - name: Set signing environment variables
+        run: |
+          echo "KEYSTORE_PASSWORD=android" >> $GITHUB_ENV
+          echo "KEY_ALIAS=release" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=android" >> $GITHUB_ENV
+
+      # Build a signed release APK
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Debug directory structure
+        run: find app/build/outputs -type f -name "*.apk" | sort
+
+      - name: Rename APK for tag release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p renamed_apk
+          cp app/build/outputs/apk/release/app-universal-release.apk renamed_apk/TetriStats-${{ env.VERSION_NAME }}.apk
+
+      - name: Rename APK for push release
+        if: ${{ !startsWith(github.ref, 'refs/tags/') && github.event_name == 'push' }}
+        run: |
+          mkdir -p renamed_apk
+          cp app/build/outputs/apk/release/app-universal-release.apk renamed_apk/TetriStats-${{ env.VERSION_NAME }}-${{ github.run_number }}.apk
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TetriStats-APK
+          path: app/build/outputs/apk/release/*.apk
+
+      # For Forgejo, create release with artifact
+      - name: Create Release on Tags
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: Release ${{ env.VERSION_NAME }}
+          draft: false
+          prerelease: false
+          artifacts: renamed_apk/TetriStats-${{ env.VERSION_NAME }}.apk
+          body: |
+            TetriStats Android App Release v${{ env.VERSION_NAME }}
+            
+            Automatically generated release from Forgejo.
+            
+            Download the APK from the assets below.
+      
+      - name: Create Release on Push
+        if: ${{ !startsWith(github.ref, 'refs/tags/') && github.event_name == 'push' }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ env.VERSION_NAME }}-${{ github.run_number }}
+          name: Release v${{ env.VERSION_NAME }}-${{ github.run_number }}
+          draft: false
+          prerelease: false
+          artifacts: renamed_apk/TetriStats-${{ env.VERSION_NAME }}-${{ github.run_number }}.apk
+          body: |
+            TetriStats Android App Release v${{ env.VERSION_NAME }}-${{ github.run_number }}
+            
+            Automatically generated release from Forgejo.
+            
+            Download the APK from the assets below. 
