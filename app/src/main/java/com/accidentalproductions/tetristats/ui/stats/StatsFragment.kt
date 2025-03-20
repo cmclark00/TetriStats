@@ -59,7 +59,7 @@ class StatsFragment : Fragment() {
         }
 
         viewModel.averageScore.observe(viewLifecycleOwner) { average ->
-            binding.textViewAverageScore.text = "%.0f".format(average)
+            binding.textViewAverageScore.text = "%,.0f".format(average)
         }
 
         viewModel.highScore.observe(viewLifecycleOwner) { highScore ->
