@@ -12,6 +12,9 @@ interface ScoreDao {
     @Query("SELECT * FROM scores WHERE gameVersion = :gameVersion")
     fun getScoresForGame(gameVersion: String): LiveData<List<Score>>
 
+    @Query("SELECT * FROM scores WHERE gameVersion = :gameVersion ORDER BY dateRecorded ASC")
+    fun getScoresForGameByDate(gameVersion: String): LiveData<List<Score>>
+
     @Query("SELECT DISTINCT gameVersion FROM scores")
     fun getGamesWithScores(): LiveData<List<String>>
 

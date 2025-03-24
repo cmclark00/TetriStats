@@ -18,6 +18,10 @@ class StatsViewModel(application: Application) : AndroidViewModel(application) {
         scoreDao.getScoresForGame(game)
     }
 
+    val scoresByDate: LiveData<List<Score>> = _selectedGame.switchMap { game ->
+        scoreDao.getScoresForGameByDate(game)
+    }
+
     val averageScore: LiveData<Double> = _selectedGame.switchMap { game ->
         scoreDao.getAverageScore(game)
     }
