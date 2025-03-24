@@ -96,8 +96,27 @@ class ScalingFactorAnalyzer {
         games.forEach { game ->
             code.appendLine("    \"$game\" to mapOf(")
             
+            // Only add factors for games that aren't the current game
             games.filter { it != game }.forEach { otherGame ->
-                val factor = factors[otherGame] ?: RangeScalingFactor(1.0, 1.0, 1.0)
+                val factor = if (game == baseGame) {
+                    // If this is the base game, use the inverse of the other game's factor
+                    factors[otherGame]?.let { RangeScalingFactor(1.0/it.low, 1.0/it.mid, 1.0/it.high) }
+                        ?: RangeScalingFactor(1.0, 1.0, 1.0)
+                } else {
+                    // If this isn't the base game, use the factor relative to the base game
+                    if (otherGame == baseGame) {
+                        factors[game] ?: RangeScalingFactor(1.0, 1.0, 1.0)
+                    } else {
+                        // For non-base game pairs, calculate the relative factor
+                        val baseFactor = factors[game] ?: RangeScalingFactor(1.0, 1.0, 1.0)
+                        val otherFactor = factors[otherGame] ?: RangeScalingFactor(1.0, 1.0, 1.0)
+                        RangeScalingFactor(
+                            baseFactor.low / otherFactor.low,
+                            baseFactor.mid / otherFactor.mid,
+                            baseFactor.high / otherFactor.high
+                        )
+                    }
+                }
                 code.appendLine("        \"$otherGame\" to RangeScalingFactor(${factor.low}, ${factor.mid}, ${factor.high}),")
             }
             
