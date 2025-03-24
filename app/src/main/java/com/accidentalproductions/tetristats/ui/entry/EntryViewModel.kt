@@ -78,6 +78,17 @@ class EntryViewModel(application: Application) : AndroidViewModel(application) {
         
         _showConversion.postValue(shouldShow)
     }
+    
+    /**
+     * Force refresh the equivalent scores - use this to ensure UI has latest values
+     */
+    fun refreshEquivalentScores(fromGame: String, score: Int) {
+        // Only refresh if conversions should be showing
+        if (_showConversion.value == true) {
+            Log.d("TetriStats", "Refreshing equivalent scores for $fromGame score $score")
+            generateEquivalentScores(fromGame, score)
+        }
+    }
 
     fun insertScore(
         gameVersion: String,

@@ -37,8 +37,27 @@ class EntryFragment : Fragment() {
         setupRecyclerView()
         setupSubmitButton()
         setupAutoAnalysis()
-        
-        // Don't need to check on startup anymore - being handled by ViewModel
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Refresh conversions when returning to this fragment
+        refreshConversions()
+    }
+    
+    /**
+     * Force refresh the conversions using the last submitted values
+     */
+    private fun refreshConversions() {
+        if (viewModel.showConversion.value == true) {
+            // If we have last submitted values, regenerate conversions
+            val game = viewModel.lastSubmittedGame.value
+            val score = viewModel.lastSubmittedScore.value
+            
+            if (game != null && score != null) {
+                viewModel.refreshEquivalentScores(game, score)
+            }
+        }
     }
 
     private fun setupGameVersionDropdown() {
@@ -70,6 +89,10 @@ class EntryFragment : Fragment() {
         // Observe if we should show conversions
         viewModel.showConversion.observe(viewLifecycleOwner) { shouldShow ->
             // No need to show toast here - we'll do it only after score submission
+            if (shouldShow) {
+                // Refresh conversions whenever showConversion becomes true
+                refreshConversions()
+            }
         }
         
         // Only setup equivalence UI when we have scores
@@ -78,6 +101,9 @@ class EntryFragment : Fragment() {
             if (games.isNotEmpty()) {
                 val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, games)
                 binding.autoCompleteEquivalentGame.setAdapter(adapter)
+                
+                // Also refresh conversions when game list changes
+                refreshConversions()
             }
         }
         
