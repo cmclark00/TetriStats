@@ -23,7 +23,9 @@ class EntryViewModel(application: Application) : AndroidViewModel(application) {
         "Tetris DS",
         "Tetris Effect",
         "Rosy Retrospection DX",
-        "Apotris"
+        "Apotris",
+        "Modretro Tetris",
+        "Tetris Mobile"
     )
     
     // Track user played games and score counts
@@ -108,13 +110,14 @@ class EntryViewModel(application: Application) : AndroidViewModel(application) {
             scoreDao.insert(newScore)
             
             // After inserting, update the last submitted values
-            _lastSubmittedGame.postValue(gameVersion)
-            _lastSubmittedScore.postValue(score)
+            _lastSubmittedGame.value = gameVersion  // Use immediate value change instead of postValue
+            _lastSubmittedScore.value = score      // Use immediate value change instead of postValue
             
-            // The criteria check will happen automatically through the observers in init
+            // Immediately check conversion criteria with current values
+            checkConversionCriteria()
             
-            // Only generate equivalent scores if we meet the criteria
-            if (_showConversion.value == true) {
+            // Immediate refresh regardless if we just reached the criteria threshold
+            if (totalScoreCount.value ?: 0 >= 3 && (gamesWithScores.value?.size ?: 0) >= 2) {
                 generateEquivalentScores(gameVersion, score)
             }
         }
@@ -146,7 +149,8 @@ class EntryViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         
-        _equivalentScores.postValue(equivalents)
+        // Use setValue for immediate update on main thread rather than postValue
+        _equivalentScores.value = equivalents
     }
     
     /**
