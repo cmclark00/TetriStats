@@ -1,5 +1,6 @@
 package com.accidentalproductions.tetristats.ui.home
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -7,7 +8,9 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import com.accidentalproductions.tetristats.R
 import com.accidentalproductions.tetristats.databinding.FragmentHomeBinding
+import com.accidentalproductions.tetristats.ui.ScalingFactorTestActivity
 
 class HomeFragment : Fragment() {
 
@@ -32,6 +35,11 @@ class HomeFragment : Fragment() {
         homeViewModel.text.observe(viewLifecycleOwner) {
             textView.text = it
         }
+
+        binding.buttonScalingAnalysis.setOnClickListener {
+            startActivity(Intent(requireContext(), ScalingFactorTestActivity::class.java))
+        }
+
         return root
     }
 
