@@ -22,4 +22,11 @@
         android:name="com.accidentalproductions.tetristats.ui.stats.StatsFragment"
         android:label="Statistics"
         tools:layout="@layout/fragment_stats" />
+
+    <fragment
+        android:id="@+id/navigation_analysis"
+        android:name="com.accidentalproductions.tetristats.ui.analysis.ScalingFactorFragment"
+        android:label="Scaling Analysis"
+        tools:layout="@layout/fragment_scaling_factor" />
+
 </navigation>
