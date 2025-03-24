@@ -1,6 +1,7 @@
 package com.accidentalproductions.tetristats.ui.entry
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.*
 import com.accidentalproductions.tetristats.TetriStatsApplication
 import com.accidentalproductions.tetristats.data.Score
@@ -42,6 +43,17 @@ class EntryViewModel(application: Application) : AndroidViewModel(application) {
     val lastSubmittedGame: LiveData<String> = _lastSubmittedGame
     val lastSubmittedScore: LiveData<Int> = _lastSubmittedScore
     val showConversion: LiveData<Boolean> = _showConversion
+    
+    init {
+        // Set up observers to update conversion criteria whenever relevant data changes
+        gamesWithScores.observeForever { 
+            checkConversionCriteria() 
+        }
+        
+        totalScoreCount.observeForever {
+            checkConversionCriteria()
+        }
+    }
 
     fun getScoresForGame(gameVersion: String): LiveData<List<Score>> {
         return scoreDao.getScoresForGame(gameVersion)
@@ -55,13 +67,16 @@ class EntryViewModel(application: Application) : AndroidViewModel(application) {
      * Check if we should show conversions based on score count and game count
      */
     fun checkConversionCriteria() {
-        viewModelScope.launch {
-            val scoreCount = totalScoreCount.value ?: 0
-            val gameCount = gamesWithScores.value?.size ?: 0
-            
-            // Only show conversions if there are at least 3 scores across at least 2 games
-            _showConversion.postValue(scoreCount >= 3 && gameCount >= 2)
-        }
+        val scoreCount = totalScoreCount.value ?: 0
+        val gameCount = gamesWithScores.value?.size ?: 0
+        
+        // Only show conversions if there are at least 3 scores across at least 2 games
+        val shouldShow = scoreCount >= 3 && gameCount >= 2
+        
+        // For debugging
+        Log.d("TetriStats", "Checking conversion criteria: scores=$scoreCount, games=$gameCount, shouldShow=$shouldShow")
+        
+        _showConversion.postValue(shouldShow)
     }
 
     fun insertScore(
@@ -85,8 +100,7 @@ class EntryViewModel(application: Application) : AndroidViewModel(application) {
             _lastSubmittedGame.postValue(gameVersion)
             _lastSubmittedScore.postValue(score)
             
-            // Check if we should show conversions
-            checkConversionCriteria()
+            // The criteria check will happen automatically through the observers in init
             
             // Only generate equivalent scores if we meet the criteria
             if (_showConversion.value == true) {
@@ -140,6 +154,13 @@ class EntryViewModel(application: Application) : AndroidViewModel(application) {
                 generateEquivalentScores(fromGame, originalScore)
             }
         }
+    }
+    
+    override fun onCleared() {
+        super.onCleared()
+        // Remove our observers to prevent leaks
+        gamesWithScores.removeObserver { checkConversionCriteria() }
+        totalScoreCount.removeObserver { checkConversionCriteria() }
     }
 }
 

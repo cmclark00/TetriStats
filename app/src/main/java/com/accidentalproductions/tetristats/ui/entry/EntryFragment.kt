@@ -17,6 +17,9 @@ class EntryFragment : Fragment() {
     private val binding get() = _binding!!
     private val viewModel: EntryViewModel by viewModels { EntryViewModelFactory(requireActivity().application) }
     private lateinit var equivalentScoreAdapter: EquivalentScoreAdapter
+    
+    // Flag to track if we already showed the requirements toast
+    private var hasShownRequirementsToast = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -35,8 +38,7 @@ class EntryFragment : Fragment() {
         setupSubmitButton()
         setupAutoAnalysis()
         
-        // Check if we should show conversions on startup
-        viewModel.checkConversionCriteria()
+        // Don't need to check on startup anymore - being handled by ViewModel
     }
 
     private fun setupGameVersionDropdown() {
@@ -67,19 +69,7 @@ class EntryFragment : Fragment() {
         
         // Observe if we should show conversions
         viewModel.showConversion.observe(viewLifecycleOwner) { shouldShow ->
-            if (!shouldShow) {
-                // Hide analysis card if we don't meet criteria
-                binding.cardAnalysisResults.visibility = View.GONE
-                
-                // Also show a message that not enough scores have been entered
-                if (viewModel.lastSubmittedGame.value != null) {
-                    Toast.makeText(
-                        context,
-                        "Enter at least 3 scores across 2 different games to see conversions",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
+            // No need to show toast here - we'll do it only after score submission
         }
         
         // Only setup equivalence UI when we have scores
@@ -112,11 +102,13 @@ class EntryFragment : Fragment() {
         // Observe last submitted score details
         viewModel.lastSubmittedGame.observe(viewLifecycleOwner) { game ->
             // Only continue if showConversion is true
-            if (viewModel.showConversion.value != true) return@observe
+            if (viewModel.showConversion.value != true) {
+                binding.cardAnalysisResults.visibility = View.GONE
+                return@observe
+            }
             
             viewModel.lastSubmittedScore.value?.let { score ->
                 binding.textViewOriginalScore.text = "Your $game score of ${"%,d".format(score)} is equivalent to:"
-                binding.cardAnalysisResults.visibility = View.VISIBLE
                 
                 // Get the list of games with scores
                 val playedGames = viewModel.gamesWithScores.value ?: listOf()
@@ -124,6 +116,7 @@ class EntryFragment : Fragment() {
                 // Make sure we don't show the source game in the equivalent dropdown
                 val filteredGames = playedGames.filter { it != game }
                 if (filteredGames.isNotEmpty()) {
+                    binding.cardAnalysisResults.visibility = View.VISIBLE
                     val filteredAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, filteredGames)
                     binding.autoCompleteEquivalentGame.setAdapter(filteredAdapter)
                     
@@ -133,11 +126,6 @@ class EntryFragment : Fragment() {
                 } else {
                     // If no other games to convert to, hide the card
                     binding.cardAnalysisResults.visibility = View.GONE
-                    Toast.makeText(
-                        context,
-                        "Add scores for other games to see conversions",
-                        Toast.LENGTH_LONG
-                    ).show()
                 }
             }
         }
@@ -171,8 +159,15 @@ class EntryFragment : Fragment() {
                 )
                 clearInputs()
                 
-                // Only scroll down if we're going to show conversions
-                if (viewModel.showConversion.value == true) {
+                // Check after submission if we should show requirements toast
+                if (viewModel.showConversion.value == false) {
+                    Toast.makeText(
+                        context,
+                        "Enter at least 3 scores across 2 different games to see conversions",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    // Only scroll down if we're going to show conversions
                     binding.root.post {
                         binding.root.fullScroll(View.FOCUS_DOWN)
                     }
