@@ -2,10 +2,14 @@ package com.accidentalproductions.tetristats
 
 import android.app.Application
 import androidx.room.Room
+import com.accidentalproductions.tetristats.data.ScalingFactorsManager
 import com.accidentalproductions.tetristats.data.ScoreDatabase
 
 class TetriStatsApplication : Application() {
     lateinit var database: ScoreDatabase
+        private set
+        
+    lateinit var scalingFactorsManager: ScalingFactorsManager
         private set
 
     override fun onCreate() {
@@ -31,5 +35,8 @@ class TetriStatsApplication : Application() {
             .fallbackToDestructiveMigration()
             .build()
         }
+        
+        // Initialize the ScalingFactorsManager
+        scalingFactorsManager = ScalingFactorsManager(applicationContext)
     }
 } 

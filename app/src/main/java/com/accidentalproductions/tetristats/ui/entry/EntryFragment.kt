@@ -5,8 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.accidentalproductions.tetristats.data.Score
 import com.accidentalproductions.tetristats.databinding.FragmentEntryBinding
 
@@ -14,6 +16,7 @@ class EntryFragment : Fragment() {
     private var _binding: FragmentEntryBinding? = null
     private val binding get() = _binding!!
     private val viewModel: EntryViewModel by viewModels { EntryViewModelFactory(requireActivity().application) }
+    private lateinit var equivalentScoreAdapter: EquivalentScoreAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -28,8 +31,12 @@ class EntryFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupGameVersionDropdown()
-        setupScoreConverter()
+        setupRecyclerView()
         setupSubmitButton()
+        setupAutoAnalysis()
+        
+        // Check if we should show conversions on startup
+        viewModel.checkConversionCriteria()
     }
 
     private fun setupGameVersionDropdown() {
@@ -45,59 +52,103 @@ class EntryFragment : Fragment() {
         val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, games)
         binding.autoCompleteGameVersion.setAdapter(adapter)
     }
-
-    private fun setupScoreConverter() {
-        // Setup "From Game" dropdown with games that have scores
-        viewModel.gamesWithScores.observe(viewLifecycleOwner) { games ->
-            val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, games)
-            binding.autoCompleteFromGame.setAdapter(adapter)
-        }
-
-        // Update score selection when game is selected
-        binding.autoCompleteFromGame.setOnItemClickListener { _, _, _, _ ->
-            val selectedGame = binding.autoCompleteFromGame.text.toString()
-            viewModel.setSelectedFromGame(selectedGame)
-            updateScoreDropdown(selectedGame)
-        }
-
-        // Setup "To Game" dropdown
-        val allGames = listOf(
-            "NES Tetris",
-            "Game Boy Tetris",
-            "Tetris DX",
-            "Tetris DS",
-            "Tetris Effect",
-            "Rosy Retrospection DX",
-            "Apotris"
-        )
-        val toGameAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, allGames)
-        binding.autoCompleteToGame.setAdapter(toGameAdapter)
-
-        // Handle score conversion
-        binding.buttonConvert.setOnClickListener {
-            viewModel.convertScore()
-        }
-
-        // Observe converted score
-        viewModel.convertedScore.observe(viewLifecycleOwner) { score ->
-            binding.cardConvertedScore.visibility = View.VISIBLE
-            binding.textViewConvertedScore.text = "%,d".format(score)
-        }
-
-        // Update selected games
-        binding.autoCompleteToGame.setOnItemClickListener { _, _, _, _ ->
-            viewModel.setSelectedToGame(binding.autoCompleteToGame.text.toString())
+    
+    private fun setupRecyclerView() {
+        equivalentScoreAdapter = EquivalentScoreAdapter()
+        binding.recyclerViewEquivalentScores.apply {
+            adapter = equivalentScoreAdapter
+            layoutManager = LinearLayoutManager(context)
         }
     }
-
-    private fun updateScoreDropdown(gameVersion: String) {
-        viewModel.getScoresForGame(gameVersion).observe(viewLifecycleOwner) { scores ->
-            val scoreStrings = scores.map { "${it.scoreValue} (Level ${it.endLevel ?: "?"})"}
-            val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, scoreStrings)
-            binding.spinnerScoreSelect.setAdapter(adapter)
-
-            binding.spinnerScoreSelect.setOnItemClickListener { _, _, position, _ ->
-                viewModel.setSelectedScore(scores[position])
+    
+    private fun setupAutoAnalysis() {
+        // Hide the analysis card by default
+        binding.cardAnalysisResults.visibility = View.GONE
+        
+        // Observe if we should show conversions
+        viewModel.showConversion.observe(viewLifecycleOwner) { shouldShow ->
+            if (!shouldShow) {
+                // Hide analysis card if we don't meet criteria
+                binding.cardAnalysisResults.visibility = View.GONE
+                
+                // Also show a message that not enough scores have been entered
+                if (viewModel.lastSubmittedGame.value != null) {
+                    Toast.makeText(
+                        context,
+                        "Enter at least 3 scores across 2 different games to see conversions",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+        
+        // Only setup equivalence UI when we have scores
+        viewModel.gamesWithScores.observe(viewLifecycleOwner) { games ->
+            // Setup the game dropdown for adding equivalents - only with played games
+            if (games.isNotEmpty()) {
+                val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, games)
+                binding.autoCompleteEquivalentGame.setAdapter(adapter)
+            }
+        }
+        
+        // Update selected game
+        binding.autoCompleteEquivalentGame.setOnItemClickListener { _, _, _, _ ->
+            val selectedGame = binding.autoCompleteEquivalentGame.text.toString()
+            viewModel.setSelectedEquivalentGame(selectedGame)
+        }
+        
+        // Handle adding equivalent scores
+        binding.buttonAddEquivalent.setOnClickListener {
+            val equivalentScore = binding.editTextEquivalentScore.text.toString().toIntOrNull()
+            if (equivalentScore != null) {
+                viewModel.addEquivalentScore(equivalentScore)
+                binding.editTextEquivalentScore.text?.clear()
+                Toast.makeText(context, "Equivalent score added! The converter is learning.", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Please enter a valid score", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        // Observe last submitted score details
+        viewModel.lastSubmittedGame.observe(viewLifecycleOwner) { game ->
+            // Only continue if showConversion is true
+            if (viewModel.showConversion.value != true) return@observe
+            
+            viewModel.lastSubmittedScore.value?.let { score ->
+                binding.textViewOriginalScore.text = "Your $game score of ${"%,d".format(score)} is equivalent to:"
+                binding.cardAnalysisResults.visibility = View.VISIBLE
+                
+                // Get the list of games with scores
+                val playedGames = viewModel.gamesWithScores.value ?: listOf()
+                
+                // Make sure we don't show the source game in the equivalent dropdown
+                val filteredGames = playedGames.filter { it != game }
+                if (filteredGames.isNotEmpty()) {
+                    val filteredAdapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, filteredGames)
+                    binding.autoCompleteEquivalentGame.setAdapter(filteredAdapter)
+                    
+                    // Select first game by default
+                    binding.autoCompleteEquivalentGame.setText(filteredGames[0], false)
+                    viewModel.setSelectedEquivalentGame(filteredGames[0])
+                } else {
+                    // If no other games to convert to, hide the card
+                    binding.cardAnalysisResults.visibility = View.GONE
+                    Toast.makeText(
+                        context,
+                        "Add scores for other games to see conversions",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+        
+        // Observe equivalent scores
+        viewModel.equivalentScores.observe(viewLifecycleOwner) { scores ->
+            if (scores.isNotEmpty()) {
+                equivalentScoreAdapter.submitList(scores)
+            } else if (viewModel.showConversion.value == true) {
+                // If we should be showing conversions but have no scores, probably no other games
+                binding.cardAnalysisResults.visibility = View.GONE
             }
         }
     }
@@ -119,6 +170,15 @@ class EntryFragment : Fragment() {
                     linesCleared = linesCleared
                 )
                 clearInputs()
+                
+                // Only scroll down if we're going to show conversions
+                if (viewModel.showConversion.value == true) {
+                    binding.root.post {
+                        binding.root.fullScroll(View.FOCUS_DOWN)
+                    }
+                }
+            } else {
+                Toast.makeText(context, "Please enter a game and score", Toast.LENGTH_SHORT).show()
             }
         }
     }

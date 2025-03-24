@@ -112,10 +112,12 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Score Converter Card -->
+        <!-- Automatic Analysis Card (hidden by default, shown after submission) -->
         <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardAnalysisResults"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:visibility="gone"
             app:cardElevation="4dp">
 
             <LinearLayout
@@ -127,92 +129,81 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Score Converter"
+                    android:text="Equivalent Scores in Other Games"
                     android:textAppearance="?attr/textAppearanceHeadline6"
                     android:layout_marginBottom="16dp"/>
 
-                <com.google.android.material.textfield.TextInputLayout
+                <TextView
+                    android:id="@+id/textViewOriginalScore"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceSubtitle1"
                     android:layout_marginBottom="8dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+                    tools:text="Your NES Tetris score of 500,000 is equivalent to:"/>
 
-                    <AutoCompleteTextView
-                        android:id="@+id/autoCompleteFromGame"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="From Game"
-                        android:inputType="none"/>
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recyclerViewEquivalentScores"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+                    android:layout_marginBottom="8dp"/>
 
-                    <AutoCompleteTextView
-                        android:id="@+id/spinnerScoreSelect"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Select Score"
-                        android:inputType="none"/>
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
+                <!-- Learning feedback section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Improve Conversions"
+                    android:textAppearance="?attr/textAppearanceSubtitle1"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="8dp"/>
+                
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+                    android:text="Do you know the equivalent score in another game? Add it to help improve future conversions:"
+                    android:textAppearance="?attr/textAppearanceBody2"
+                    android:layout_marginBottom="8dp"/>
 
-                    <AutoCompleteTextView
-                        android:id="@+id/autoCompleteToGame"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="To Game"
-                        android:inputType="none"/>
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/buttonConvert"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Convert Score"
-                    android:layout_marginBottom="16dp"/>
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cardConvertedScore"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:visibility="gone"
-                    app:cardBackgroundColor="@color/tetris_turquoise"
-                    app:cardElevation="2dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Converted Score"
-                            android:textColor="@color/tetris_navy"
-                            android:textAppearance="?attr/textAppearanceBody1"/>
-
-                        <TextView
-                            android:id="@+id/textViewConvertedScore"
+                        <AutoCompleteTextView
+                            android:id="@+id/autoCompleteEquivalentGame"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:gravity="center"
-                            android:textColor="@color/tetris_navy"
-                            android:textAppearance="?attr/textAppearanceHeadline4"
-                            tools:text="1,000,000"/>
+                            android:hint="Game"
+                            android:inputType="none"/>
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                    </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/editTextEquivalentScore"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:hint="Score"
+                            android:inputType="number"/>
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/buttonAddEquivalent"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Add Equivalent Score"/>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

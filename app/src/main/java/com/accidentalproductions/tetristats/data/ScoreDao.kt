@@ -15,6 +15,9 @@ interface ScoreDao {
     @Query("SELECT DISTINCT gameVersion FROM scores")
     fun getGamesWithScores(): LiveData<List<String>>
 
+    @Query("SELECT COUNT(*) FROM scores")
+    fun getTotalScoreCount(): LiveData<Int>
+
     @Query("SELECT AVG(scoreValue) FROM scores WHERE gameVersion = :gameVersion")
     fun getAverageScore(gameVersion: String): LiveData<Double>
 
